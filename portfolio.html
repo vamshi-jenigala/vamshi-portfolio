@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive CV - Jenigala Vamshi</title>
+    <!-- Chosen Palette: Warm Stone & Deep Teal -->
+    <!-- Application Structure Plan: A single-page dashboard structure. The key interaction is a two-button filter ("Core Engineering" vs. "Software Development"). A user (recruiter) clicks a focus, which triggers JS to: 1) Update a "Focus Statement" text. 2) Update a "Key Skills" list. 3) Filter a "Project Showcase" grid by hiding/showing project cards based on data-category attributes. This architecture was chosen because the source CV shows a clear split in skills (Core ECE vs. Web Dev), and recruiters for each role value different information. This design directly serves the recruiter's need to qualify the candidate for a specific path, making exploration efficient. -->
+    <!-- Visualization & Content Choices: 
+      1. Info: Skill & Project Distribution. Goal: Inform (high-level). Viz: Doughnut Chart. Interaction: None (static). Justification: Provides a quick "at-a-glance" summary of the candidate's versatile focus. Library: Chart.js (Canvas).
+      2. Info: Key Skills. Goal: Inform (specifics). Viz: Dynamic HTML List. Interaction: Content updates based on main "Focus" filter. Justification: Reduces clutter and shows the *most relevant* skills first, which recruiters scan for. Method: JS (DOM manipulation).
+      3. Info: Projects. Goal: Inform, Compare. Viz: Interactive Card Grid. Interaction: Grid items (cards) are filtered (show/hide) based on the "Focus" filter. Justification: This is the most critical interaction, allowing recruiters to see *relevant experience* immediately. Method: JS (DOM manipulation, class toggling).
+      4. Info: Education. Goal: Inform. Viz: Responsive Timeline. Interaction: None. Justification: Clear, chronological, and professional presentation of academic history. Method: HTML/Tailwind (Flex/Grid).
+      5. Info: Achievements. Goal: Inform. Viz: Simple Card List. Interaction: None. Justification: Easy to scan for awards and recognitions. Method: HTML/Tailwind.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            max-height: 300px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+                max-height: 350px;
+            }
+        }
+        
+        .project-card.hidden {
+            display: none;
+        }
+
+        .focus-btn {
+            transition: all 0.3s ease;
+        }
+
+        .focus-btn.active {
+            background-color: #0d9488; /* teal-600 */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        .focus-btn:not(.active):hover {
+            background-color: #f1f5f9; /* slate-100 */
+        }
+        
+        .timeline-item {
+            position: relative;
+            padding-bottom: 2rem;
+            padding-left: 2rem;
+        }
+        .timeline-item:before {
+            content: '';
+            position: absolute;
+            left: 0.5rem;
+            top: 0.25rem;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 50%;
+            background-color: #0d9488; /* teal-600 */
+            border: 3px solid #ccfbf1; /* teal-100 */
+            z-index: 10;
+        }
+        .timeline-item:after {
+            content: '';
+            position: absolute;
+            left: 1rem;
+            top: 0.25rem;
+            bottom: 0;
+            width: 2px;
+            background-color: #cbd5e1; /* slate-300 */
+        }
+        .timeline-item:last-child:after {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-stone-100 text-stone-800">
+
+    <main class="container mx-auto max-w-7xl p-4 sm:p-6 md:p-10">
+        
+        <!-- Header Section -->
+        <header class="text-center mb-12">
+            <h1 class="text-5xl md:text-6xl font-bold text-teal-700 mb-2">Jenigala Vamshi</h1>
+            <p class="text-2xl text-stone-600 font-light">Interactive Technical Portfolio</p>
+            <div class="flex justify-center gap-4 mt-6">
+                <a href="mailto:vamshijenigala@gmail.com" class="text-teal-600 hover:text-teal-800 transition-colors duration-300">vamshijenigala@gmail.com</a>
+                <span>|</span>
+                <a href="https://linkedin.com/in/vamshi-r-51677a20b" target="_blank" class="text-teal-600 hover:text-teal-800 transition-colors duration-300">LinkedIn Profile</a>
+                <span>|</span>
+                <span class="text-stone-600">+91 9014184224</span>
+            </div>
+        </header>
+
+        <!-- Professional Summary -->
+        <section class="bg-white rounded-xl shadow-lg p-6 md:p-8 mb-10">
+            <h2 class="text-3xl font-bold text-teal-700 mb-4">Professional Summary</h2>
+            <p class="text-lg text-stone-700 leading-relaxed">
+                Proactive Electronics and Communications Engineering student (Expected 2026) with a strong foundation in both **Embedded Systems/IoT** and **Full-Stack Web Development**. Proven ability to design, prototype, and implement innovative hardware and software solutions using Arduino, NodeMCU, Python, and React.js. Winner of an Intra-Institutional Innovation Competition, I am seeking a challenging entry-level role to apply my versatile technical expertise in a dynamic development environment.
+            </p>
+        </section>
+
+        <!-- Interactive Focus Section -->
+        <section class="mb-10">
+            <h2 class="text-3xl font-bold text-center text-teal-700 mb-4">Interactive Career Focus</h2>
+            <p class="text-center text-lg text-stone-600 mb-6">What kind of role are you hiring for? Select a focus to filter my skills and projects.</p>
+            
+            <div class="flex justify-center gap-4 mb-8">
+                <button id="btnCore" class="focus-btn active text-lg font-medium py-3 px-6 rounded-full border-2 border-teal-600">
+                    ► Core Engineering (Embedded / IoT)
+                </button>
+                <button id="btnSoftware" class="focus-btn text-lg font-medium py-3 px-6 rounded-full border-2 border-teal-600">
+                    ► Software Development (Web / Data)
+                </button>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 min-h-[100px]">
+                <p id="focusStatement" class="text-lg text-stone-700 leading-relaxed transition-opacity duration-500"></p>
+            </div>
+        </section>
+
+        <!-- Skills Dashboard -->
+        <section class="bg-white rounded-xl shadow-lg p-6 md:p-8 mb-10">
+            <h2 class="text-3xl font-bold text-teal-700 mb-6">Skills Dashboard</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div>
+                    <h3 class="text-2xl font-semibold text-stone-800 mb-4 text-center">Project Focus Distribution</h3>
+                    <p class="text-center text-stone-600 mb-4">This chart shows the thematic distribution of my 5 major projects, highlighting my strong focus on embedded systems and IoT.</p>
+                    <div class="chart-container">
+                        <canvas id="skillsChart"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <h3 id="keySkillsTitle" class="text-2xl font-semibold text-stone-800 mb-4">Key Skills</h3>
+                    <p class="text-stone-600 mb-4">This list dynamically updates to show the most relevant skills based on the focus you selected above.</p>
+                    <ul id="keySkillsList" class="space-y-3">
+                        <!-- This content is generated by JavaScript -->
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Project Showcase -->
+        <section class="mb-10">
+            <h2 id="projectsTitle" class="text-3xl font-bold text-teal-700 mb-6">Project Showcase</h2>
+            <div id="projectGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <div class="project-card bg-white p-6 rounded-xl shadow-lg" data-category="core iot">
+                    <span class="inline-block bg-teal-100 text-teal-800 text-xs font-medium px-2.5 py-0.5 rounded-full mb-2">Embedded / IoT</span>
+                    <h3 class="text-2xl font-bold text-stone-800 mb-2">Emergency Communication System</h3>
+                    <p class="text-stone-600 mb-4">Engineered a long-range, low-power communication system using LoRa modules for emergency messaging without existing infrastructure.</p>
+                    <p class="font-semibold text-stone-700">Key Tech: Arduino Uno, LoRa (RA-02), C/Arduino Script</p>
+                </div>
+
+                <div class="project-card bg-white p-6 rounded-xl shadow-lg" data-category="software web">
+                    <span class="inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full mb-2">Web / Full-Stack</span>
+                    <h3 class="text-2xl font-bold text-stone-800 mb-2">E-Commerce Website</h3>
+                    <p class="text-stone-600 mb-4">Built a full-stack e-commerce site with product listings, user login/signup, and shopping cart functionality.</p>
+                    <p class="font-semibold text-stone-700">Key Tech: React.js, Node.js, Flask, HTML/CSS</p>
+                </div>
+
+                <div class="project-card bg-white p-6 rounded-xl shadow-lg" data-category="core iot">
+                    <span class="inline-block bg-teal-100 text-teal-800 text-xs font-medium px-2.5 py-0.5 rounded-full mb-2">Embedded / IoT</span>
+                    <h3 class="text-2xl font-bold text-stone-800 mb-2">Real-Time Fan Automation</h3>
+                    <p class="text-stone-600 mb-4">Developed an automated cooling system using an Arduino and temperature sensor. Integrated an I2C LED display for real-time feedback.</p>
+                    <p class="font-semibold text-stone-700">Key Tech: Arduino, I2C Display, Temperature Sensor, C++</p>
+                </div>
+                
+                <div class="project-card bg-white p-6 rounded-xl shadow-lg" data-category="core iot">
+                    <span class="inline-block bg-teal-100 text-teal-800 text-xs font-medium px-2.5 py-0.5 rounded-full mb-2">Embedded / IoT</span>
+                    <h3 class="text-2xl font-bold text-stone-800 mb-2">IoT Remote Control System</h3>
+                    <p class="text-stone-600 mb-4">Implemented a home automation system using NodeMCU to remotely control a fan and light via an Adafruit IO dashboard over Wi-Fi.</p>
+                    <p class="font-semibold text-stone-700">Key Tech: NodeMCU (ESP8266), Adafruit IO, ThingSpeak</p>
+                </div>
+                
+                <div class="project-card bg-white p-6 rounded-xl shadow-lg" data-category="core electronics">
+                    <span class="inline-block bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full mb-2">Core Electronics</span>
+                    <h3 class="text-2xl font-bold text-stone-800 mb-2">Ramp Signal Generator</h3>
+                    <p class="text-stone-600 mb-4">Developed and simulated a ramp signal generator using the 555 timer IC and an RC integrator circuit to create a linear voltage waveform.</p>
+                    <p class="font-semibold text-stone-700">Key Tech: 555 Timer, Circuit Design, Multisim, Symica DE</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Education & Achievements -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            
+            <!-- Education Timeline -->
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <h2 class="text-3xl font-bold text-teal-700 mb-8">Education</h2>
+                <div class="relative">
+                    <div class="timeline-item">
+                        <h3 class="text-xl font-semibold text-stone-800">Bachelor of Technology, ECE</h3>
+                        <p class="text-stone-600 font-medium mb-1">Mahatma Gandhi Institute of Technology (MGIT)</p>
+                        <p class="text-stone-500 text-sm">2022 – 2026 (Expected) | CGPA: 7.9</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h3 class="text-xl font-semibold text-stone-800">Intermediate (MPC)</h3>
+                        <p class="text-stone-600 font-medium mb-1">Sri Chaitanya Jr. College</p>
+                        <p class="text-stone-500 text-sm">2020 – 2022 | 95%</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h3 class="text-xl font-semibold text-stone-800">SSC</h3>
+                        <p class="text-stone-600 font-medium mb-1">St Mary’s E/M High school</p>
+                        <p class="text-stone-500 text-sm">2019 – 2020 | 10/10 Grade</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Achievements -->
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <h2 class="text-3xl font-bold text-teal-700 mb-8">Achievements & Certifications</h2>
+                <ul class="space-y-4">
+                    <li class="flex items-start gap-3">
+                        <span class="text-xl text-yellow-500 mt-1">🏆</span>
+                        <div>
+                            <h3 class="text-xl font-semibold text-stone-800">3rd Place, Innovation Competition</h3>
+                            <p class="text-stone-600">Won 3rd position in the Intra-Institutional Innovation Competition and Hackathon (IIC).</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-xl text-yellow-500 mt-1">🏆</span>
+                        <div>
+                            <h3 class="text-xl font-semibold text-stone-800">Competitive Team Wins</h3>
+                            <p class="text-stone-600">Won inter-college volleyball competition and SGF tournament at the division level.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-xl text-blue-500 mt-1">►</span>
+                        <div>
+                            <h3 class="text-xl font-semibold text-stone-800">Smart India Hackathon (SIH)</h3>
+                            <p class="text-stone-600">Successfully participated in the national-level SIH competition.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-xl text-blue-500 mt-1">►</span>
+                        <div>
+                            <h3 class="text-xl font-semibold text-stone-800">Youth Transforming Mission 2024</h3>
+                            <p class="text-stone-600">Attended the mission organized by Kalam’s Institute of Youth Excellence.</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center p-6 mt-10">
+        <p class="text-stone-500">Built as an interactive single-page application. | Jenigala Vamshi 2025</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Data for Dynamic Content ---
+            
+            const skillsData = {
+                core: [
+                    { name: 'C / C++', level: 'Proficient' },
+                    { name: 'Arduino & NodeMCU', level: 'Advanced' },
+                    { name: 'Embedded Systems', level: 'Advanced' },
+                    { name: 'LoRa & Wireless Comms', level: 'Experienced' },
+                    { name: 'I2C / SPI Protocols', level: 'Experienced' },
+                    { name: 'Circuit Design & Analysis', level: 'Proficient' },
+                    { name: 'Xilinx & MATLAB', level: 'Experienced' },
+                    { name: 'Assembly (8085/8086)', level: 'Familiar' }
+                ],
+                software: [
+                    { name: 'React.js', level: 'Proficient' },
+                    { name: 'Node.js & Flask', level: 'Experienced' },
+                    { name: 'Python', level: 'Proficient' },
+                    { name: 'HTML, CSS, JavaScript', level: 'Advanced' },
+                    { name: 'Data Structures & Algorithms', level: 'Proficient' },
+                    { name: 'Git & GitHub', level: 'Experienced' },
+                    { name: 'Full-Stack Development', level: 'Experienced' },
+                    { name: 'RESTful APIs', level: 'Experienced' }
+                ]
+            };
+
+            const focusStatements = {
+                core: "This view highlights my expertise in **Embedded Systems, IoT, and Core Electronics**. You'll see projects related to hardware interfacing, low-level C programming, wireless communication (LoRa), and cloud IoT platforms.",
+                software: "This view highlights my expertise in **Full-Stack Software Development**. You'll see projects related to building modern web applications with React, Node.js, and Python, along with my foundational knowledge of data structures and algorithms."
+            };
+
+            // --- DOM Element References ---
+            
+            const btnCore = document.getElementById('btnCore');
+            const btnSoftware = document.getElementById('btnSoftware');
+            const focusStatement = document.getElementById('focusStatement');
+            const keySkillsTitle = document.getElementById('keySkillsTitle');
+            const keySkillsList = document.getElementById('keySkillsList');
+            const projectsTitle = document.getElementById('projectsTitle');
+            const projectCards = document.querySelectorAll('.project-card');
+            const skillsChartCtx = document.getElementById('skillsChart').getContext('2d');
+
+            // --- Chart.js Initialization ---
+
+            new Chart(skillsChartCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Embedded / IoT', 'Web / Software', 'Core Electronics'],
+                    datasets: [{
+                        label: 'Project Focus',
+                        data: [3, 1, 1], // Based on 3 IoT, 1 Web, 1 Electronics project
+                        backgroundColor: [
+                            '#0d9488', // teal-600
+                            '#2563eb', // blue-600
+                            '#16a34a'  // green-600
+                        ],
+                        borderColor: '#ffffff',
+                        borderWidth: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 14,
+                                    family: 'Inter'
+                                },
+                                color: '#44403c' // stone-700
+                            }
+                        }
+                    }
+                }
+            });
+
+            // --- Main Update Function ---
+
+            function updateView(focus) {
+                // 1. Update Buttons
+                btnCore.classList.toggle('active', focus === 'core');
+                btnSoftware.classList.toggle('active', focus === 'software');
+
+                // 2. Update Focus Statement
+                focusStatement.innerHTML = focusStatements[focus];
+
+                // 3. Update Key Skills
+                keySkillsTitle.textContent = focus === 'core' ? 'Key Core Engineering Skills' : 'Key Software Development Skills';
+                keySkillsList.innerHTML = ''; // Clear existing list
+                const skillsToShow = skillsData[focus];
+                skillsToShow.forEach(skill => {
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between items-center bg-stone-50 p-3 rounded-lg';
+                    li.innerHTML = `<span class="font-medium text-stone-700">${skill.name}</span>
+                                    <span class="text-sm font-medium text-teal-600 px-2 py-0.5 rounded-full bg-teal-100">${skill.level}</span>`;
+                    keySkillsList.appendChild(li);
+                });
+
+                // 4. Update Projects Title
+                projectsTitle.textContent = focus === 'core' ? 'Core Engineering Projects' : 'Software Development Projects';
+                
+                // 5. Filter Projects
+                projectCards.forEach(card => {
+                    const categories = card.dataset.category.split(' ');
+                    
+                    if (focus === 'core') {
+                        const isCore = categories.includes('core') || categories.includes('iot') || categories.includes('electronics');
+                        card.classList.toggle('hidden', !isCore);
+                    } else if (focus === 'software') {
+                        const isSoftware = categories.includes('software') || categories.includes('web');
+                        card.classList.toggle('hidden', !isSoftware);
+                    }
+                });
+            }
+
+            // --- Event Listeners ---
+            
+            btnCore.addEventListener('click', () => updateView('core'));
+            btnSoftware.addEventListener('click', () => updateView('software'));
+
+            // --- Initial Load ---
+            
+            updateView('core'); // Default to 'core' view on page load
+        });
+    </script>
+</body>
+</html>
